@@ -53,18 +53,24 @@ body {
       transition-colors focus:border-border-strong focus:outline-none;
   }
 
-  .btn {
+  /*
+   * Grouped rather than `.btn-primary { @apply btn }`: in Tailwind 4 `@apply`
+   * only takes real utilities, not another class defined in this layer.
+   */
+  .btn,
+  .btn-primary,
+  .btn-ghost {
     @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5
       text-[15px] font-medium transition-colors
       disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .btn-primary {
-    @apply btn bg-accent text-accent-fg hover:bg-accent/90;
+    @apply bg-accent text-accent-fg hover:bg-accent/90;
   }
 
   .btn-ghost {
-    @apply btn border border-border text-muted hover:border-border-strong hover:text-fg;
+    @apply border border-border text-muted hover:border-border-strong hover:text-fg;
   }
 
   .card {
