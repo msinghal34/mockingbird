@@ -1,4 +1,5 @@
 import NextAuth from "next-auth";
+import { redirect } from "next/navigation";
 import Credentials from "next-auth/providers/credentials";
 import { eq } from "drizzle-orm";
 
@@ -78,11 +79,18 @@ const DUMMY_HASH =
   "scrypt$131072$8$1$EFWMPafMl5Vf886jEX/nZw==$" +
   "O6oYnWVGARbpsOftWXBhZuBeRHwxp36YyPzvcEyF2TVNx4MmcKqdPL6YpaEFX2xOGYEeUzKgzXLd3+87iJaHhA==";
 
-/** Throws rather than redirecting — for server actions that must have a user. */
+/**
+ * The session, or a redirect to sign-in.
+ *
+ * Redirects rather than throws. The /app layout already redirects anonymous
+ * visitors, but Next still evaluates the page and its generateMetadata, so a
+ * throwing version logged a real error for every signed-out visit — noise that
+ * would bury an actual fault. redirect() is the same outcome, quietly.
+ */
 export async function requireUser(): Promise<{ id: string; email: string }> {
   const session = await auth();
   if (!session?.user?.id) {
-    throw new Error("Not signed in.");
+    redirect("/sign-in");
   }
   return { id: session.user.id, email: session.user.email };
 }
