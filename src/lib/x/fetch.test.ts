@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { authorFromTweets, parseResponse, XFetchError } from "./fetch";
+import { authorFromTweets, classifyStatus, parseResponse, XFetchError } from "./fetch";
 import fixture from "./fixtures/fatimarizwan.json";
 
 describe("parseResponse", () => {
@@ -90,5 +90,38 @@ describe("authorFromTweets", () => {
       bio: null,
       followers: null,
     });
+  });
+});
+
+describe("classifyStatus", () => {
+  it("retries a rate limit rather than giving up", () => {
+    // Paging a timeline back-to-back trips this on its own; treating it as
+    // fatal showed the user "no posts found" for a perfectly good handle.
+    expect(classifyStatus(429).kind).toBe("retry");
+  });
+
+  it("retries server-side failures", () => {
+    expect(classifyStatus(500).kind).toBe("retry");
+    expect(classifyStatus(502).kind).toBe("retry");
+    expect(classifyStatus(503).kind).toBe("retry");
+  });
+
+  it("fails fast on a bad key or an empty wallet", () => {
+    // These look identical on attempt three, so retrying only wastes time.
+    for (const status of [401, 403, 402]) {
+      expect(classifyStatus(status).kind).toBe("fatal");
+    }
+    expect(classifyStatus(402)).toMatchObject({ message: expect.stringContaining("credit") });
+    expect(classifyStatus(401)).toMatchObject({ message: expect.stringContaining("rejected") });
+  });
+
+  it("fails fast on other client errors", () => {
+    expect(classifyStatus(400).kind).toBe("fatal");
+    expect(classifyStatus(404).kind).toBe("fatal");
+  });
+
+  it("passes success through", () => {
+    expect(classifyStatus(200).kind).toBe("ok");
+    expect(classifyStatus(204).kind).toBe("ok");
   });
 });

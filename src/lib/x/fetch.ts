@@ -13,8 +13,12 @@ const BASE_URL = "https://api.twitterapi.io/twitter/user/last_tweets";
 /** The API returns ~10 per page; this caps how many pages we pay for. */
 const MAX_PAGES = 4;
 const REQUEST_TIMEOUT_MS = 15_000;
+/** Gap between timeline pages, to stay under the provider's rate limit. */
+const PAGE_INTERVAL_MS = 1_200;
 
 export class XFetchError extends Error {}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Deliberately loose: we pick out the fields we use and let the rest through,
@@ -119,6 +123,10 @@ export async function fetchRecentTweets(
   let retriedEmptyFirstPage = false;
 
   for (let page = 0; page < MAX_PAGES && collected.length < limit; page++) {
+    // Paging flat out is enough to rate-limit ourselves. A short gap between
+    // pages costs a second on a cold handle and nothing on a cached one.
+    if (page > 0) await sleep(PAGE_INTERVAL_MS);
+
     const url = new URL(BASE_URL);
     url.searchParams.set("userName", handle);
     url.searchParams.set("includeReplies", "false");
@@ -153,11 +161,42 @@ export async function fetchRecentTweets(
   };
 }
 
-/** One retry, because a single network blip shouldn't cost a generation. */
+/**
+ * Retries what can be retried, and gives up immediately on what can't.
+ *
+ * 429 matters most here: paging through a timeline back-to-back is enough to
+ * trip the rate limit on its own, so a burst that would otherwise surface as
+ * "no posts found" is just a request that needed to wait its turn. A rejected
+ * key or an empty wallet, by contrast, will look exactly the same on attempt
+ * three, so those fail loudly on the first try.
+ */
+export type StatusVerdict =
+  | { kind: "ok" }
+  | { kind: "retry" }
+  | { kind: "fatal"; message: string };
+
+/** Exported so the retry policy is pinned by a test rather than by memory. */
+export function classifyStatus(status: number): StatusVerdict {
+  if (status === 401 || status === 403) {
+    return { kind: "fatal", message: "The twitterapi.io key was rejected." };
+  }
+  if (status === 402) {
+    return { kind: "fatal", message: "The twitterapi.io account is out of credit." };
+  }
+  if (status === 429 || status >= 500) return { kind: "retry" };
+  if (status < 200 || status >= 300) {
+    return { kind: "fatal", message: `twitterapi.io returned HTTP ${status}.` };
+  }
+  return { kind: "ok" };
+}
+
 async function requestJson(url: URL, apiKey: string): Promise<unknown> {
+  const backoffs = [1_000, 3_000, 6_000];
   let lastError: unknown;
 
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt <= backoffs.length; attempt++) {
+    if (attempt > 0) await sleep(backoffs[attempt - 1]);
+
     try {
       const response = await fetch(url, {
         headers: { "X-API-Key": apiKey },
@@ -165,24 +204,29 @@ async function requestJson(url: URL, apiKey: string): Promise<unknown> {
         cache: "no-store",
       });
 
-      if (response.status === 401 || response.status === 403) {
-        throw new XFetchError("The twitterapi.io key was rejected.");
+      const verdict = classifyStatus(response.status);
+
+      if (verdict.kind === "fatal") throw new XFetchError(verdict.message);
+
+      if (verdict.kind === "retry") {
+        lastError = new Error(`HTTP ${response.status}`);
+        const retryAfter = Number(response.headers.get("retry-after"));
+        if (Number.isFinite(retryAfter) && retryAfter > 0) {
+          await sleep(Math.min(retryAfter * 1000, 10_000));
+        }
+        continue;
       }
-      if (response.status === 402) {
-        throw new XFetchError("The twitterapi.io account is out of credit.");
-      }
-      if (!response.ok) {
-        throw new XFetchError(`twitterapi.io returned HTTP ${response.status}.`);
-      }
+
       return await response.json();
     } catch (error) {
-      // A rejected key or an empty wallet won't fix itself on a retry.
       if (error instanceof XFetchError) throw error;
       lastError = error;
     }
   }
 
   throw new XFetchError(
-    `Could not reach twitterapi.io: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
+    `Couldn't reach twitterapi.io after ${backoffs.length + 1} attempts (${
+      lastError instanceof Error ? lastError.message : String(lastError)
+    }).`,
   );
 }
