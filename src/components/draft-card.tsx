@@ -56,7 +56,7 @@ export function DraftCard({
       </p>
 
       {rationale ? (
-        <p className="mt-3 border-l-2 border-border pl-3 text-[13px] leading-relaxed text-subtle">
+        <p className="mt-3 border-l-2 border-border pl-3 text-[13px] leading-relaxed text-muted">
           {rationale}
         </p>
       ) : null}

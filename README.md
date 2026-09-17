@@ -2,7 +2,9 @@
 
 Give it an X handle. It reads how that person writes, then drafts new posts in their voice.
 
-**Live:** _(deploying — URL goes here)_
+**Live:** https://mockingbird-nu.vercel.app
+
+**Repo:** https://github.com/msinghal34/mockingbird
 
 ---
 
@@ -45,8 +47,10 @@ Three things make that dependency safe to build on:
 There is no provider abstraction layer, no interface with one implementation.
 There's one provider today; when there are two, that's when an interface earns its place.
 
-A quirk worth recording, because it shaped the code: **twitterapi.io intermittently returns an empty first page for a valid, public handle**, then 20 tweets on an identical request a second later.
-I hit this while capturing fixtures. Without a retry the user is told the account has no posts, which is a lie — so `fetchRecentTweets` retries an empty first page exactly once.
+Two quirks worth recording, because both shaped the code and both were found by running the thing rather than by reading docs:
+
+- **An empty first page for a valid, public handle**, then 20 tweets on an identical request a second later. Without a retry the user is told the account has no posts, which is a lie — so an empty first page is retried exactly once.
+- **Paging a timeline flat out rate-limits you against yourself.** The first live generation in production came back as `twitterapi.io returned HTTP 429`, because 429 was classified alongside a rejected key as unretryable. Now 429 and 5xx back off and retry (honouring `Retry-After`), there is a 1.2s gap between pages, and a bad key or an empty wallet still fails on the first attempt. `classifyStatus` is a pure function so that policy is pinned by tests.
 
 ### Generation is two stages, not one
 
@@ -146,6 +150,18 @@ Unit tests cover the parts where being wrong is quiet rather than loud: handle n
 
 There are no tests against a live database or a live model.
 Both are someone else's service, and a test that fails when their API is slow is a test people learn to ignore.
+
+What those tests can't catch, I checked by driving the deployed site in a real browser: sign up, generate, open the voice profile, copy a draft, sign out, fail a sign-in, sign back in, confirm the history survived, and confirm a second account gets a 404 on the first account's permalink. That pass is what found the bugs listed below.
+
+## Found by using it, not by reading it
+
+Three real bugs came out of that browser pass, and they're the ones I'd point at:
+
+- **A failed sign-in wiped the email field.** The action result re-renders the form, so uncontrolled inputs reset — one wrong password cost you your email address too. Email, topic and draft count are controlled now.
+- **The avatar rendered an empty circle** whenever the image lost its race with first paint. It was `next/image` with `unoptimized`, which emits a plain `<img>` anyway while still demanding a `remotePatterns` entry — so it's a plain `<img>` now, eagerly loaded, synchronously decoded, falling back to initials on error.
+- **`requireUser()` threw on every signed-out page hit.** The layout already redirects, but Next still evaluates the page and its `generateMetadata`, so production logged `Error: Not signed in.` for every anonymous visit — noise that would bury a real fault. It redirects instead.
+
+One accessibility fix too: the secondary text colour was 3.7–4.1:1 against these surfaces, under WCAG AA for body text. It's 4.7:1 or better everywhere now.
 
 ## What I'd do with more time
 

@@ -12,7 +12,9 @@
   --color-border-strong: #3a3a41;
   --color-fg: #fafafa;
   --color-muted: #a1a1aa;
-  --color-subtle: #71717a;
+  /* #71717a read at only 3.7-4.1:1 on these surfaces, under WCAG AA for
+     body text. This clears 4.7:1 everywhere and keeps the hierarchy. */
+  --color-subtle: #82828c;
   --color-accent: #f2b544;
   --color-accent-soft: #3a2c10;
   --color-accent-fg: #1a1205;

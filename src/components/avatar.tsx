@@ -43,8 +43,11 @@ export function Avatar({
       alt=""
       width={size}
       height={size}
-      loading="lazy"
-      decoding="async"
+      // Eager and synchronously decoded on purpose. These are ~40px and always
+      // above the fold, so deferring them buys nothing and costs a visible pop
+      // — and an async decode can miss the first paint entirely.
+      loading="eager"
+      decoding="sync"
       referrerPolicy="no-referrer"
       onError={() => setFailed(true)}
       style={{ width: size, height: size }}
