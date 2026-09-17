@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { requireUser } from "@/auth";
-import { Avatar, SourceBadge, timeAgo } from "@/components/handle-card";
+import { Avatar } from "@/components/avatar";
+import { SourceBadge, timeAgo } from "@/components/meta";
 import { listGenerations } from "@/lib/generations";
 
 export const metadata: Metadata = { title: "History" };

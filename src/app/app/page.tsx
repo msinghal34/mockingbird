@@ -2,7 +2,8 @@ import Link from "next/link";
 
 import { requireUser } from "@/auth";
 import { GenerateForm } from "@/components/generate-form";
-import { Avatar, timeAgo } from "@/components/handle-card";
+import { Avatar } from "@/components/avatar";
+import { timeAgo } from "@/components/meta";
 import { listGenerations } from "@/lib/generations";
 import { DEMO_HANDLES } from "@/lib/x/fixtures";
 

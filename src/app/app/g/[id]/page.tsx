@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 
 import { requireUser } from "@/auth";
 import { DraftCard } from "@/components/draft-card";
-import { Avatar, SourceBadge, timeAgo } from "@/components/handle-card";
+import { Avatar } from "@/components/avatar";
+import { SourceBadge, timeAgo } from "@/components/meta";
 import { VoicePanel } from "@/components/voice-panel";
 import { getGeneration } from "@/lib/generations";
 

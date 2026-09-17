@@ -40,3 +40,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# marketplace integration tooling (installed by `vercel install neon`)
+.agents/
+.claude/
+skills-lock.json

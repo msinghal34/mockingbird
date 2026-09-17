@@ -41,7 +41,12 @@ export function GenerateForm({
   demoHandles: string[];
 }) {
   const [state, formAction] = useActionState(action, { error: null });
+  // All three are controlled for the same reason: the action result re-renders
+  // this form, and an uncontrolled input resets to empty. Losing the topic you
+  // typed because you hit the rate limit is a small thing that feels broken.
   const [handle, setHandle] = useState("");
+  const [topic, setTopic] = useState("");
+  const [count, setCount] = useState("5");
 
   const touched = handle.trim().length > 0;
   const malformed = touched && !isValidHandleInput(handle);
@@ -101,6 +106,8 @@ export function GenerateForm({
           <input
             id="topic"
             name="topic"
+            value={topic}
+            onChange={(event) => setTopic(event.target.value)}
             maxLength={200}
             autoComplete="off"
             placeholder="e.g. hiring, or why deadlines slip"
@@ -112,7 +119,13 @@ export function GenerateForm({
           <label className="label" htmlFor="count">
             Drafts
           </label>
-          <select id="count" name="count" defaultValue="5" className="field">
+          <select
+            id="count"
+            name="count"
+            value={count}
+            onChange={(event) => setCount(event.target.value)}
+            className="field"
+          >
             {[3, 4, 5, 6, 8].map((n) => (
               <option key={n} value={n}>
                 {n}

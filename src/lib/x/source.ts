@@ -66,6 +66,10 @@ export async function getCorpusForHandle(
   } catch (error) {
     if (!(error instanceof XFetchError)) throw error;
 
+    // Falling back is the designed behaviour, but it should never be silent:
+    // "sample data" in the UI is a symptom, and this is the cause.
+    console.error(`[x/source] live fetch failed for @${handle}:`, error.message);
+
     const fixture = fixtureFor(handle);
     if (fixture) {
       return await persist(

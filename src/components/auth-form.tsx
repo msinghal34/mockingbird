@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import type { AuthFormState } from "@/lib/auth/actions";
@@ -25,6 +25,10 @@ export function AuthForm({
   footer: { prompt: string; href: string; linkLabel: string };
 }) {
   const [state, formAction] = useActionState(action, { error: null });
+  // Controlled, so a rejected submit doesn't wipe what they typed. The action
+  // result re-renders the form, and an uncontrolled input would reset to empty
+  // — meaning one wrong password costs you your email address too.
+  const [email, setEmail] = useState("");
 
   return (
     <>
@@ -37,6 +41,8 @@ export function AuthForm({
             id="email"
             name="email"
             type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
             autoComplete="email"
             required
             placeholder="you@example.com"

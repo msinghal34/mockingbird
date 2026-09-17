@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 /** Relative time, without pulling in a date library for three call sites. */
 export function timeAgo(date: Date): string {
   const seconds = Math.max(0, Math.round((Date.now() - date.getTime()) / 1000));
@@ -21,37 +19,6 @@ export function timeAgo(date: Date): string {
     label = name;
   }
   return `${value} ${label}${value === 1 ? "" : "s"} ago`;
-}
-
-export function Avatar({
-  src,
-  handle,
-  size = 40,
-}: {
-  src: string | null;
-  handle: string;
-  size?: number;
-}) {
-  if (!src) {
-    return (
-      <div
-        style={{ width: size, height: size }}
-        className="flex shrink-0 items-center justify-center rounded-full border border-border bg-surface-2 text-[13px] font-semibold text-subtle"
-      >
-        {handle.slice(0, 2).toUpperCase()}
-      </div>
-    );
-  }
-  return (
-    <Image
-      src={src}
-      alt=""
-      width={size}
-      height={size}
-      className="shrink-0 rounded-full border border-border object-cover"
-      unoptimized
-    />
-  );
 }
 
 /**
