@@ -92,7 +92,16 @@ export default async function LandingPage() {
       </main>
 
       <footer className="mx-auto max-w-5xl border-t border-border px-6 py-8 text-[13px] text-subtle">
-        Built as a take-home. The README explains every decision in it.
+        Built as a take-home.{" "}
+        <a
+          href="https://github.com/msinghal34/mockingbird"
+          target="_blank"
+          rel="noreferrer noopener"
+          className="text-muted underline underline-offset-2 transition-colors hover:text-fg"
+        >
+          The source and the README
+        </a>{" "}
+        explain every decision in it.
       </footer>
     </div>
   );
